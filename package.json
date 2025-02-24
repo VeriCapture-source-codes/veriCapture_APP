@@ -1,0 +1,14 @@
+{
+  "name": "vericapture_app",
+  "version": "1.0.0",
+  "description": "This is web APP for real time events",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "team03",
+  "license": "MIT",
+  "dependencies": {
+    "nodemailer": "^6.10.0"
+  }
+}
