@@ -1,7 +1,7 @@
 import Joi from "joi";
-import { ApiErrors } from "./error.js";
+import { ApiError } from "./error.js";
 
-const schema = Joi.object({
+export const schema = Joi.object({
     name: Joi.string().required().trim(),
     userName: Joi.string().trim(),
     email: Joi.string().required().trim(),
@@ -11,17 +11,19 @@ const schema = Joi.object({
 });
 
 
-export const registerValidation =  (req, res, next) => {
-   const { error } = schema.validate(req.body)
+export const registerValidation = (req, res, next) => {
+   const { error } =  schema.validate(req.body)
    if (error) {
-    return res.status(400).json(new ApiErrors(400, error.details[0].message));
+    return res.status(400).json({
+        Error: error.details[0].message
+    });
    }
 
    next();
 }
 
 
-const loginSchema = Joi.object({
+export const loginSchema = Joi.object({
     email: Joi.string().required(),
     password: Joi.string().required()
 });
@@ -30,7 +32,7 @@ const loginSchema = Joi.object({
 export const loginValidation = (req, res, next) => {
     const { error } = loginSchema.validate(req.body);
     if (error) {
-        return res.status(400).json(new ApiErrors(400, error.details[0].message));
+        return res.status(400).json(new ApiError(400, error.details[0].message));
     }
 
     next();

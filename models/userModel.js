@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
+import validator from 'validator';
 
 const userSchema = new mongoose.Schema({
     name: {
@@ -25,7 +26,10 @@ const userSchema = new mongoose.Schema({
     },
     password: {
         type: String,
-        required: [ true, 'Password field is required' ],
+        select: false,
+        required: function () {
+            return !this.googleId && !this.twitterId && !this.facebookId
+        },
         validate: {
             validator: function(value) {
             return validator.isStrongPassword(value)
@@ -34,43 +38,60 @@ const userSchema = new mongoose.Schema({
         },
     },
 
-    confirmPassword: {
-        type: String,
-        validate: {
-            validator: function (value) {
-               return this.password === value
-            },
-            message: 'Password not match'
-        }
-    },
+    // confirmPassword: {
+    //     type: String,
+    //     validate: {
+    //         validator: function (value) {
+    //            return this.password === value
+    //         },
+    //         message: 'Password not match'
+    //     }
+    // },
 
     googleId: {
-        type: String
+        type: String,
+        select: false,
     },
 
     facebookId: {
         type: String,
+        select: false,
     },
 
     twitterId: {
         type: String,
+        select: false,
     },
     thumbnail: {
         type: String,
+        default: ''
     },
+    cloudinary_id: {
+        type: String,
+        select: false
+    },
+    resetPasswordOTP: {
+        type: String,
+        default: ''
+    },
+    resetPasswordOTPExpireAt: {
+        type: Date,
+        default: Date.now
+    }
+
 }, {timestamps: true});
 
 userSchema.pre('save', async function(next) {
     if (!this.isModified('password')) return next();
         this.password = await bcrypt.hash(this.password, 10);
 
-    this.confirmPassword = null;
+    // this.confirmPassword = null;
 
     next();
 });
 
-userSchema.methods.comparePassword = async function (password, DBpassword) {
-    return await bcrypt.compare(password, DBpassword);
+userSchema.methods.comparePassword = async function (password) {
+    return await bcrypt.compare(password, this.password);
 }
 
 const userModel = mongoose.model('User', userSchema);

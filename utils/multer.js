@@ -1,25 +1,20 @@
 import multer from 'multer';
-import { v4 as uuid } from 'uuid';
-import { ApiErrors } from './error.js';
+import { ApiError } from './error.js';
 
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, './upload');
-    },
-    filename: (req, file, cb) => {
-        const { originalname } = file;
-        cb(null, `${uuid}-${originalname}`);
+const storage = multer.memoryStorage();
+const upload = multer({
+    storage: storage,
+    limits: { fileSize: 5 * 1024 * 1024}, // 5MB limit
+    fileFilter: (req, file, cb) => {
+        const filetypes = /jpeg|jpg|png|gif/;
+        const mimetype = filetypes.test(file.mimetype);
+        const extname = filetypes.test(file.originalname.split('.').pop().toLocaleLowerCase());
+
+        if (mimetype && extname) {
+            return cb(null, true);
+        }
+        cb(new ApiError(422, 'Invalid file type. Only JPEG, PNG, JPG and GIF are allowed'));
     }
 });
-
-const fileFilter = (req, file, cb) => {
-    if (file.mimetype[0] === 'image') {
-      return  cb(null, true)
-    } else {
-        cb(new ApiErrors(403, 'File type not accepted, Please upload an image file'), false);
-    }
-}
-
-const upload = multer({storage, fileFilter});
 
 export default upload;
