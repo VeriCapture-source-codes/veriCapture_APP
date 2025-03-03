@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { Login, Register } from '../controllers/users.controllers.js';
+import { Login, Logout, Register } from '../controllers/users.controllers.js';
 import jwt from 'jsonwebtoken';
 import upload from '../utils/multer.js';
 import passport from '../auth/passport.js';
@@ -202,5 +202,6 @@ userRouter.post('/reset-password', async (req, res) => {
 
 userRouter.post('/register', upload.single('thumbnail'), Register)
 userRouter.post('/login', Login);
+userRouter.post('/logout', Logout);
 
 export default userRouter;

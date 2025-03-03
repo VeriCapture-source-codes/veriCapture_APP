@@ -6,6 +6,9 @@ import { ApiError, globalError } from './utils/error.js';
 import userRouter from './routers/users.routers.js';
 import passport from 'passport';
 import session from 'express-session';
+import postRouter from './routers/post.routers.js';
+import commentRouter from './routers/comment.routers.js';
+import replyRouter from './routers/reply.routers.js';
 
 
 const app = express();
@@ -30,6 +33,9 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 app.use('/api/v1/users', userRouter);
+app.use('/api/v1/users', postRouter);
+app.use('/api/v1/users', commentRouter);
+app.use('/api/v1/users', replyRouter);
 
 app.all('*', (req, res, next) => {
     const error = new ApiError(404, `Can't find ${req.originalUrl} on the server`);

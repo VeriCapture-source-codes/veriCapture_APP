@@ -26,7 +26,6 @@ const userSchema = new mongoose.Schema({
     },
     password: {
         type: String,
-        select: false,
         required: function () {
             return !this.googleId && !this.twitterId && !this.facebookId
         },
@@ -50,17 +49,14 @@ const userSchema = new mongoose.Schema({
 
     googleId: {
         type: String,
-        select: false,
     },
 
     facebookId: {
         type: String,
-        select: false,
     },
 
     twitterId: {
         type: String,
-        select: false,
     },
     thumbnail: {
         type: String,
@@ -68,7 +64,6 @@ const userSchema = new mongoose.Schema({
     },
     cloudinary_id: {
         type: String,
-        select: false
     },
     resetPasswordOTP: {
         type: String,
@@ -91,6 +86,9 @@ userSchema.pre('save', async function(next) {
 });
 
 userSchema.methods.comparePassword = async function (password) {
+    if (!this.password) {
+        throw new Error("Password is undefined in the database");
+    }
     return await bcrypt.compare(password, this.password);
 }
 

@@ -115,13 +115,6 @@ export const Login = asyncHandler(async (req, res, next) => {
     }
 
     
-    if (!isMatch) {
-        const error = new ApiError(403, 'Invalid credentials');
-        
-        return next(error)
-    }
-    
-    
     const token = jwt.sign({id: user._id}, process.env.JWT_SECRET, { expiresIn: 3 * 24 * 60 * 60 * 1000});
     res.cookie('token', token, {
         httpOnly: true,
@@ -136,8 +129,8 @@ export const Login = asyncHandler(async (req, res, next) => {
 
 
 export const Logout = (req, res, next) => {
-    const token = req.cookies.token;
-    res.cookie('token', token, {
+    const { token } = req.cookies;
+    res.clearCookie('token', token, {
         httpOnly: true,
         sameSite: 'strict',
         secure: process.env.NODE_ENV === 'production'
@@ -150,7 +143,7 @@ export const Logout = (req, res, next) => {
 }
 
 
-export const Update = asyncHandler(async (req, res, next) => {
+export const updateUser = asyncHandler(async (req, res, next) => {
     const userId = req.user._id;
     if (!userId) {
         const error = new ApiError(403, 'You are not authorized. Please login to continue');
@@ -162,13 +155,15 @@ export const Update = asyncHandler(async (req, res, next) => {
         return next(error);
     }
 
+    const { name, email, thumbnail } = req.body;
+
     const userToUpdate = await userModel.findByIdAndUpdate(user._id, {
         $set: {
             name,
             email,
             thumbnail
         }
-    }, {runValidators: true});
+    }, {new: true, runValidators: true});
     await userToUpdate.save();
     
     res.status(201).json({
@@ -177,7 +172,7 @@ export const Update = asyncHandler(async (req, res, next) => {
     });
 });
 
-export const Delete = asyncHandler(async (req, res, next) => {
+export const deleteUser = asyncHandler(async (req, res, next) => {
     const userId = req.user._id;
     if (!userId) {
         const error = new ApiError(403, 'You are not authorized. Please login to continue');
@@ -212,6 +207,11 @@ export const fetchUsersByName = asyncHandler(async (req, res, next) => {
     }
 
     const name = req.params.name;
+    if (!name) {
+            const error = new ApiError(400, 'Please provide name for the search');
+            return next(error);
+        }
+
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) | 10;
     const skip = (page - 1) * limit;
@@ -255,7 +255,14 @@ export const fetchOneUserById = asyncHandler(async (req, res, next) => {
         return next(error);
     }
     
-    const fetchedUser = await userModel.findById({id: req.params.id});
+    const id = req.params.id;
+    if (!id) {
+            const error = new ApiError(400, 'Please user ID in the search query');
+            return next(error);
+        }
+
+
+    const fetchedUser = await userModel.findById(id);
     if (!fetchedUser) {
         const error = new ApiError(404, 'User not found');
         return next(error);
@@ -270,4 +277,4 @@ export const fetchOneUserById = asyncHandler(async (req, res, next) => {
         }
     });
 
-})
+});
