@@ -5,6 +5,7 @@ import mongoose from "mongoose";
 const postSchema = new mongoose.Schema({
     user: {
         type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
         required: true,
     },
     caption: {
@@ -17,10 +18,10 @@ const postSchema = new mongoose.Schema({
     image: {
         type: String,
     },
-    likes: {
+    likes: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
-    },
+    }],
 
     location: {
         type: String,

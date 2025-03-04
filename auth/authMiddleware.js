@@ -4,24 +4,28 @@ import userModel from '../models/userModel.js';
 
 const userAuth = async (req, res, next) => {
     try {
-        const token = req.cookies.token
+        const { token } = req.cookies
 
         // 🔴 Check if token exists in cookies
         if (!token) {
             return res.status(403).json({
                 success: false,
-                message: 'You are not authorized - No Token Provided'
+                message: 'You are not authorized - Please Login'
             });
         }
+        console.log(token);
+        
 
         // ✅ Verify token
-        const decodedToken = jwt.verify(token, process.env.JWT_SECRET); // No need for promisify
+        const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
         if (!decodedToken || !decodedToken.id) {
             return res.status(403).json({
                 success: false,
-                message: 'Invalid token'
+                message: 'You are not authorized - Invalid token'
             });
         }
+        console.log(decodedToken);
+        
 
         // ✅ Fetch user from DB
         const user = await userModel.findById(decodedToken.id);

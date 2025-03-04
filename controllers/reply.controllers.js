@@ -6,7 +6,7 @@ import commentModel from '../models/commentModel.js';
 
 export const createReply = asyncHandler(async (req, res, next) => {
     const userId = req.user._id;
-    const commentId = req.params._id;
+    const { commentId } = req.params;
     const { text, parentReply } = req.body;
 
     if (!userId || !commentId) {
@@ -43,7 +43,7 @@ export const createReply = asyncHandler(async (req, res, next) => {
         parentReply: parentReply || null
     });
 
-    const newReply = await replyModel.findBy(reply._id);
+    const newReply = await replyModel.findById(reply._id);
     if (!newReply) {
         return next(new ApiError(500, 'Something went wrong'));
     }
@@ -58,7 +58,7 @@ export const createReply = asyncHandler(async (req, res, next) => {
 
 export const updateReply = asyncHandler(async (req, res, next) => {
     const userId = req.user._id;
-    const replyId = req.params._id;
+    const { replyId } = req.params;
     if (!userId || !replyId ) {
         return next(new ApiError(403, 'You are not authorized. Please Login and click on the reply you want to update'));
     }
@@ -92,7 +92,7 @@ export const updateReply = asyncHandler(async (req, res, next) => {
 
 export const deleteReply = asyncHandler(async (req, res, next) => {
     const userId = req.user._id;
-    const replyId = req.params._id;
+    const { replyId } = req.params;
     if (!userId || !replyId ) {
         return next(new ApiError(403, 'You are not authorized. Please Login and click on the reply you want to update'));
     }

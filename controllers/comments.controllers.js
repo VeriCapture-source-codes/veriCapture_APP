@@ -1,12 +1,13 @@
 
 import commentModel from '../models/commentModel.js';
+import postModel from '../models/postModel.js';
 import userModel from '../models/userModel.js';
 import { ApiError, asyncHandler } from '../utils/error.js';
 
 
 export const createComment = asyncHandler(async (req, res, next) => {
     const userId = req.user._id;
-    const postId = req.params._id;
+    const { postId } = req.params;
 
     if (!userId || !postId) {
         return next(new ApiError(403, 'You are not authorized. Please Login and click on the post to comment'));
@@ -17,6 +18,11 @@ export const createComment = asyncHandler(async (req, res, next) => {
         const error = new ApiError(404, 'User not found');
         return next(error);
     }
+
+    const post = await postModel.findById(postId);
+    if (!post) {
+        return next(new ApiError(404, 'Post not found'));
+    }
     
     const text = req.body.text;
     if (!text) {
@@ -24,7 +30,7 @@ export const createComment = asyncHandler(async (req, res, next) => {
     }
     const comment = await commentModel.create({
         user: loggedInUser._id,
-        post: postId,
+        post: post._id,
         text
     });
 
@@ -43,7 +49,7 @@ export const createComment = asyncHandler(async (req, res, next) => {
 
 export const updateComment = asyncHandler(async (req, res, next) => {
     const userId = req.user._id;
-    const commentId = req.params._id;
+    const { commentId } = req.params;
     if (!userId || !commentId ) {
         return next(new ApiError(403, 'You are not authorized. Please Login and click on the comment you want to update'));
     }
@@ -77,7 +83,7 @@ export const updateComment = asyncHandler(async (req, res, next) => {
 
 export const deleteComment = asyncHandler(async (req, res, next) => {
     const userId = req.user._id;
-    const commentId = req.params._id;
+    const { commentId } = req.params;
     if (!userId || !commentId ) {
         return next(new ApiError(403, 'You are not authorized. Please Login and click on the comment you want to update'));
     }

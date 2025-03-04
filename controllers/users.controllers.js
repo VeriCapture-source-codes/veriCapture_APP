@@ -114,8 +114,11 @@ export const Login = asyncHandler(async (req, res, next) => {
         return next(error);
     }
 
-    
-    const token = jwt.sign({id: user._id}, process.env.JWT_SECRET, { expiresIn: 3 * 24 * 60 * 60 * 1000});
+    const loggedInUser = await userModel.findById(user._id)
+    .select('name thumbnail email -_id')
+
+    const token = jwt.sign({id: loggedInUser._id}, process.env.JWT_SECRET, { expiresIn: 3 * 24 * 60 * 60 * 1000});
+
     res.cookie('token', token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
@@ -123,7 +126,7 @@ export const Login = asyncHandler(async (req, res, next) => {
         maxAge: 3 * 24 * 60 * 60 * 1000
     });
 
-    res.status(200).json(new ApiResponse(200, user, 'Login successful'))
+    res.status(200).json(new ApiResponse(200, loggedInUser, 'Login successful'))
 
 });
 
@@ -136,7 +139,7 @@ export const Logout = (req, res, next) => {
         secure: process.env.NODE_ENV === 'production'
     });
 
-    res.status(204).json({
+    res.status(200).json({
         success: true,
         message: 'Logout successful'
     });
@@ -194,7 +197,8 @@ export const deleteUser = asyncHandler(async (req, res, next) => {
 
 
 export const fetchUsersByName = asyncHandler(async (req, res, next) => {
-    const userId = req.user._id;
+    const userId = req.user.id;
+    console.log("Decoded User from Token:", req.user);
     if (!userId) {
         const error = new ApiError(403, 'You are not authorized. Please login to continue');
         return next(error);
@@ -206,14 +210,14 @@ export const fetchUsersByName = asyncHandler(async (req, res, next) => {
         return next(error);
     }
 
-    const name = req.params.name;
+    const { name } = req.params;
     if (!name) {
             const error = new ApiError(400, 'Please provide name for the search');
             return next(error);
         }
 
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) | 10;
+    const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
     const totalUsers = await userModel.countDocuments({ name: { $regex: name, $options: 'i'}});
@@ -225,6 +229,7 @@ export const fetchUsersByName = asyncHandler(async (req, res, next) => {
     const foundUsers = await userModel.find({ name: { $regex: name, $options: 'i'}})
     .skip(skip)
     .limit(limit)
+    .select('name thumbnail')
 
     if (foundUsers.length === 0) {
         const error = new ApiError(404, 'No more page available');
@@ -237,7 +242,7 @@ export const fetchUsersByName = asyncHandler(async (req, res, next) => {
         totalUsers,
         totalPages: Math.ceil(totalUsers / limit),
         data: foundUsers,
-    })
+    });
 });
 
 
@@ -255,14 +260,15 @@ export const fetchOneUserById = asyncHandler(async (req, res, next) => {
         return next(error);
     }
     
-    const id = req.params.id;
+    const { id } = req.params;
     if (!id) {
             const error = new ApiError(400, 'Please user ID in the search query');
             return next(error);
         }
 
 
-    const fetchedUser = await userModel.findById(id);
+    const fetchedUser = await userModel.findById(id)
+    .select('name thumbnail')
     if (!fetchedUser) {
         const error = new ApiError(404, 'User not found');
         return next(error);

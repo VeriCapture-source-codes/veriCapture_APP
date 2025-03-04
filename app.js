@@ -16,8 +16,8 @@ const app = express();
 
 app.use(cookieParser());
 app.use(cors({
-    credentials: true,
-    origin: '*'
+    origin: 'http://localhost:5000',
+    credentials: true
 }));
 
 app.use(express.json());

@@ -1,3 +1,4 @@
+
 import postModel from '../models/postModel.js';
 import userModel from '../models/userModel.js';
 import  { asyncHandler, ApiError } from '../utils/error.js'
@@ -64,7 +65,7 @@ export const fetchUserPosts = asyncHandler(async (req, res, next) => {
         }
 
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) | 10;
+    const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
     
     const totalPosts = await postModel.countDocuments({ user: loggedInUser._id});
@@ -73,7 +74,8 @@ export const fetchUserPosts = asyncHandler(async (req, res, next) => {
         return next(error);
     }
     const posts = await postModel.find({ user: loggedInUser._id})
-    .populate('user', 'name')
+    .populate('user', 'name thumbnail')
+    .populate('likes', 'name thumbnail')
     .sort({ createdAt: -1})
     .skip(skip)
     .limit(limit)
@@ -98,7 +100,7 @@ export const fetchUserPosts = asyncHandler(async (req, res, next) => {
 
 export const fetchPostsByLocation = asyncHandler(async (req, res, next) => {
     const userId = req.user._id;
-    const location = req.params.location;
+    const { location } = req.params;
     if (!userId) {
             const error = new ApiError(403, 'You are not authorized. Please login to continue');
             return next(error);
@@ -110,7 +112,7 @@ export const fetchPostsByLocation = asyncHandler(async (req, res, next) => {
            return next(error);
         }
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) | 10;
+    const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
     const totalPosts = await postModel.countDocuments({location: { $regex: location, $options: 'i'}});
@@ -123,8 +125,8 @@ export const fetchPostsByLocation = asyncHandler(async (req, res, next) => {
     .sort({createdAt: -1})
     .skip(skip)
     .limit(limit)
-    .populate('postId', 'video image location')
-    .populate('userId', 'name thumpnaail')
+    .populate('likes', 'name thumbnail')
+    .populate('user', 'name thumpnaail')
 
     if (posts.length === 0) {
         const error = new ApiError(404, 'No more page available');
@@ -146,8 +148,8 @@ export const fetchPostsByLocation = asyncHandler(async (req, res, next) => {
 
 export const updatePost = asyncHandler(async (req, res, next) => {
     const userId = req.user._id;
-    const id = req.params.id;
-    if (!userId || !id) {
+    const { postId } = req.params;
+    if (!userId || !postId) {
             const error = new ApiError(403, 'You are not authorized. Please login to continue and click on the post you want to update');
             return next(error);
         }
@@ -158,17 +160,35 @@ export const updatePost = asyncHandler(async (req, res, next) => {
            return next(error);
         }
     
-        const postToUpdate = await postModel.findOne({ _id: id, user: loggedInUser._id});
+        const postToUpdate = await postModel.findOne({ _id: postId, user: loggedInUser._id});
         if (!postToUpdate) {
             const error = new ApiError(404, 'Post not found');
             return next(error);
         }
     
+    // const { video, image, caption, location} = req.body;
+    // if ((!video && !image && caption && location) || (video && image)) {
+    //     const error = new ApiError(400, 'Either video or image is required not both and caption is also required');
+    //     return next(error);
+    // }
+
     const { video, image, caption, location} = req.body;
-    if ((!video && !image && caption && location) || (video && image)) {
-        const error = new ApiError(400, 'Either video or image is required not both and caption is also required');
-        return next(error);
-    }
+
+// if (!video && !image) {
+//     return next(new ApiError(400, "Either a video or an image is required."));
+// }
+
+// if (video && image) {
+//     return next(new ApiError(400, "You can only upload either a video or an image, not both."));
+// }
+
+// if (!caption) {
+//     return next(new ApiError(400, "Caption is required."));
+// }
+
+// if (!location) {
+//     return next(new ApiError(400, "Caption is required."));
+// }
 
     const updatedPost = await postModel.findByIdAndUpdate(postToUpdate._id, {
         $set: {
@@ -189,9 +209,9 @@ export const updatePost = asyncHandler(async (req, res, next) => {
 
 export const deletePost = asyncHandler(async (req, res, next) => {
     const userId = req.user._id;
-    const id = req.params.id;
+    const { postId } = req.params;
 
-    if (!userId || !id) {
+    if (!userId || !postId) {
             const error = new ApiError(403, 'You are not authorized. Please login to continue and click on the post you want to update');
             return next(error);
         }
@@ -202,7 +222,7 @@ export const deletePost = asyncHandler(async (req, res, next) => {
            return next(error);
         }
     
-    const postToDelete = await postModel.findOne({ _id: id, user: loggedInUser._id});
+    const postToDelete = await postModel.findOne({ _id: postId, user: loggedInUser._id});
     if (!postToDelete) {
            const error = new ApiError(404, 'Post not found');
            return next(error);
@@ -239,7 +259,7 @@ export const postLikes = asyncHandler(async (req, res, next) => {
     if (!post) {
         return next(new ApiError(404, 'Post notfound'));
     }
-
+    console.log("Post found:", post);
     const hasLiked = post.likes.includes(user._id);
     if (hasLiked) {
         post.likes = post.likes.filter(id => id.toString() !== user._id);

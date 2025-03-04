@@ -1,11 +1,12 @@
 import { Router } from 'express';
-import { Login, Logout, Register } from '../controllers/users.controllers.js';
+import { deleteUser, fetchOneUserById, fetchUsersByName, Login, Logout, Register, updateUser } from '../controllers/users.controllers.js';
 import jwt from 'jsonwebtoken';
 import upload from '../utils/multer.js';
 import passport from '../auth/passport.js';
 import userModel from '../models/userModel.js';
 import transporter from '../utils/nodemailer.js';
 import userAuth from '../auth/authMiddleware.js';
+import authMiddleware from '../auth/authGetUsersByName.js';
 
 const userRouter = Router();
 
@@ -22,11 +23,17 @@ userRouter.get('/auth/google/callback',
             process.env.JWT_SECRET,
             { expiresIn: "3d" }
         );
+
+        res.cookie('token', token, {
+            httpOnly: true,
+            sameSite: 'strict',
+            maxAge: 3 * 60 * 60 * 1000,
+            secure: process.env.NODE_ENV === 'production'
+        });
         res.status(200).json({
             success: true,
             message: "Authentication successful",
-            user: req.user,
-            token
+            user: req.user
         });
     }
 )
@@ -43,11 +50,18 @@ userRouter.get('/auth/twitter/callback',
             process.env.JWT_SECRET,
             { expiresIn: "3d" }
         );
+
+        res.cookie('token', token, {
+            httpOnly: true,
+            sameSite: 'strict',
+            maxAge: 3 * 60 * 60 * 1000,
+            secure: process.env.NODE_ENV === 'production'
+        });
+
         res.status(200).json({
             success: true,
             message: "Authentication successful",
             user: req.user,
-            token
         });
     }
 )
@@ -74,7 +88,7 @@ userRouter.post("/set-password", userAuth, async (req, res) => {
         if (!userId || !password) {
             return res.status(400).json({
                 success: false,
-                message: 'Please Login with your Twitter/Facebook/Google account to continue'
+                message: 'Please Login with your Twitter/Facebook/Google account and provide your new password to continue'
             });
         }
 
@@ -203,5 +217,9 @@ userRouter.post('/reset-password', async (req, res) => {
 userRouter.post('/register', upload.single('thumbnail'), Register)
 userRouter.post('/login', Login);
 userRouter.post('/logout', Logout);
+userRouter.put('/update-user', userAuth, updateUser);
+userRouter.delete('/delete-user', userAuth, deleteUser);
+userRouter.get('/get-user-by-name/:name', authMiddleware, fetchUsersByName);
+userRouter.get('/get-user-by-id/:id', userAuth, fetchOneUserById);
 
 export default userRouter;

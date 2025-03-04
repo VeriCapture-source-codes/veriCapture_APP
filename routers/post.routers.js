@@ -7,10 +7,10 @@ const postRouter = Router();
 
 
 postRouter.post('/upload-post',userAuth ,createPost);
-postRouter.get('/get-users-posts',userAuth, fetchUserPosts);
-postRouter.get('/get-posts-by-location',userAuth, fetchPostsByLocation);
-postRouter.put('/update-post',userAuth, updatePost);
-postRouter.delete('delete-post/:id',userAuth, deletePost);
-postRouter.post('/like-post/:id', userAuth, postLikes);
+postRouter.get('/get-user-posts',userAuth, fetchUserPosts);
+postRouter.get('/get-posts-by-location/:location',userAuth, fetchPostsByLocation);
+postRouter.put('/update-post/:postId',userAuth, updatePost);
+postRouter.delete('/delete-post/:postId',userAuth, deletePost);
+postRouter.post('/like-post/:postId', userAuth, postLikes);
 
 export default postRouter;
