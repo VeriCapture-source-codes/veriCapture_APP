@@ -11,7 +11,7 @@ dotenv.config()
 
 
 export const Register = asyncHandler(async(req, res, next) => {
-    const { name, email, userName, password, confirmPassword, thumbnail} = req.body;
+    const { name, email, userName, password, thumbnail} = req.body;
     const { error } =  schema.validate(req.body)
        if (error) {
            return next(new ApiError(400, error.details[0].message));
@@ -40,15 +40,14 @@ export const Register = asyncHandler(async(req, res, next) => {
         stream.end(req.file.buffer);
     })
     
-
+    const uploadResult = await result;
     const user = await userModel.create({
             name,
             userName,
             email,
             password,
-            confirmPassword,
-            thumbnail: result.secure_url,
-            cloudinary_id: result.public_id,
+            thumbnail: uploadResult.secure_url,
+            cloudinary_id: uploadResult.public_id,
     });
 
     const newUser = await userModel.findById(user._id);
@@ -115,9 +114,9 @@ export const Login = asyncHandler(async (req, res, next) => {
     }
 
     const loggedInUser = await userModel.findById(user._id)
-    .select('name thumbnail email -_id')
+    .select('name thumbnail email')
 
-    const token = jwt.sign({id: loggedInUser._id}, process.env.JWT_SECRET, { expiresIn: 3 * 24 * 60 * 60 * 1000});
+    const token = jwt.sign({id: loggedInUser._id}, process.env.JWT_SECRET, { expiresIn: '3d'});
 
     res.cookie('token', token, {
         httpOnly: true,
@@ -148,6 +147,8 @@ export const Logout = (req, res, next) => {
 
 export const updateUser = asyncHandler(async (req, res, next) => {
     const userId = req.user._id;
+    const { name, email, thumbnail } = req.body;
+    
     if (!userId) {
         const error = new ApiError(403, 'You are not authorized. Please login to continue');
         return next(error);
@@ -157,14 +158,35 @@ export const updateUser = asyncHandler(async (req, res, next) => {
         const error = new ApiError(404, 'User not found');
         return next(error);
     }
+    
+        // 🔵 If a new file is uploaded, handle streaming upload
+    if (req.file) {
+            // Delete old image from Cloudinary if exists
+       if (user.cloudinary_id) {
+      await cloudinary.uploader.destroy(user.cloudinary_id);
+      }
+    } 
+    
+   const uploadPromise = new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+            { resource_type: 'auto' },
+                (error, result) => {
+                    if (error) return reject(error);
+                        resolve(result);
+                    }
+            );
+            stream.end(req.file.buffer);
+    });
 
-    const { name, email, thumbnail } = req.body;
+    // Await Cloudinary upload result
+    const uploadResult = await uploadPromise;
 
     const userToUpdate = await userModel.findByIdAndUpdate(user._id, {
         $set: {
             name,
             email,
-            thumbnail
+            thumbnail: uploadResult.secure_url,
+            cloudinary_id: uploadResult.public_id
         }
     }, {new: true, runValidators: true});
     await userToUpdate.save();
@@ -189,7 +211,7 @@ export const deleteUser = asyncHandler(async (req, res, next) => {
 
     const userToDelete = await userModel.findByIdAndDelete(user._id);
 
-    res.status(204).json({
+    res.status(200).json({
         success: true,
         message: 'Your account is deleted successfully'
     });

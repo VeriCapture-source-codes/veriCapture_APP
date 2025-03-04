@@ -2,6 +2,7 @@
 import postModel from '../models/postModel.js';
 import userModel from '../models/userModel.js';
 import  { asyncHandler, ApiError } from '../utils/error.js'
+import cloudinary from '../utils/cloudinary.js';
 
 
 export const createPost = asyncHandler(async (req, res, next) => {
@@ -16,16 +17,9 @@ export const createPost = asyncHandler(async (req, res, next) => {
            const error = new ApiError(404, 'User not found');
            return next(error);
     }
+     console.log("Received file:", req.file);
 
-const { video, image, caption, location} = req.body;
-
-if (!video && !image) {
-    return next(new ApiError(400, "Either a video or an image is required."));
-}
-
-if (video && image) {
-    return next(new ApiError(400, "You can only upload either a video or an image, not both."));
-}
+const { media, caption, location} = req.body;
 
 if (!caption) {
     return next(new ApiError(400, "Caption is required."));
@@ -35,12 +29,47 @@ if (!location) {
     return next(new ApiError(400, "Caption is required."));
 }
 
+
+    // const result = await new Promise((resolve, reject) => {
+    //     const stream = cloudinary.uploader.upload_stream(
+    //         {resource_type: 'auto'},
+    //         (error, result) => {
+    //             if (error) {
+    //                 return reject(error);
+    //             }
+    //             resolve(result);
+    //         }
+    //     );
+    //     stream.end(req.file.buffer);
+    // });
+
+    if (!req.file) {
+          return res.status(400).json({ message: "Either a video or an image is required." });
+        }
+         
+    const result = await new Promise((resolve, reject) => {
+            const stream = cloudinary.uploader.upload_stream(
+                {resource_type: 'auto'},
+                (error, result) => {
+                    if (error) {
+                        return reject(error);
+                    }
+                    resolve(result);
+                }
+            );
+            stream.end(req.file.buffer);
+        })
+        
+        const uploadResult = await result;
+        
+
+    
     const post = await postModel.create({
         user: loggedInUser._id,
-        video,
-        image,
+        media: uploadResult.secure_url,
         caption,
-        location
+        location,
+        cloudinary_id: uploadResult.public_id
     });
 
     res.status(201).json({
@@ -172,7 +201,7 @@ export const updatePost = asyncHandler(async (req, res, next) => {
     //     return next(error);
     // }
 
-    const { video, image, caption, location} = req.body;
+    const { media, caption, location} = req.body;
 
 // if (!video && !image) {
 //     return next(new ApiError(400, "Either a video or an image is required."));
@@ -190,12 +219,36 @@ export const updatePost = asyncHandler(async (req, res, next) => {
 //     return next(new ApiError(400, "Caption is required."));
 // }
 
+        // 🔵 If a new file is uploaded, handle streaming upload
+    if (req.file) {
+            // Delete old image from Cloudinary if exists
+       if (postToUpdate.cloudinary_id) {
+      await cloudinary.uploader.destroy(postToUpdate.cloudinary_id);
+      }
+
+    }  
+    
+   const uploadPromise = new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+            { resource_type: 'auto' },
+                (error, result) => {
+                    if (error) return reject(error);
+                        resolve(result);
+                    }
+            );
+            stream.end(req.file.buffer);
+    });
+
+    // Await Cloudinary upload result
+    const uploadResult = await uploadPromise;
+            
+
     const updatedPost = await postModel.findByIdAndUpdate(postToUpdate._id, {
         $set: {
-            video,
-            image,
+            media: uploadResult.secure_url,
             caption,
-            location
+            location,
+            cloudinary_id: uploadResult.public_id
         }
     }, {new: true, runValidators: true});
 

@@ -217,9 +217,9 @@ userRouter.post('/reset-password', async (req, res) => {
 userRouter.post('/register', upload.single('thumbnail'), Register)
 userRouter.post('/login', Login);
 userRouter.post('/logout', Logout);
-userRouter.put('/update-user', userAuth, updateUser);
+userRouter.put('/update-user', userAuth, upload.single('thumbnail'), updateUser);
 userRouter.delete('/delete-user', userAuth, deleteUser);
-userRouter.get('/get-user-by-name/:name', authMiddleware, fetchUsersByName);
+userRouter.get('/get-user-by-name/:name', userAuth, fetchUsersByName);
 userRouter.get('/get-user-by-id/:id', userAuth, fetchOneUserById);
 
 export default userRouter;

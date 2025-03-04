@@ -6,7 +6,6 @@ export const schema = Joi.object({
     userName: Joi.string().trim(),
     email: Joi.string().required().trim(),
     password: Joi.string().required().trim(),
-    confirmPassword: Joi.string().required(),
     thumbnail: Joi.string()
 });
 

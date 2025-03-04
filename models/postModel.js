@@ -12,11 +12,12 @@ const postSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    video: {
+    media: {
         type: String,
+        required: true
     },
-    image: {
-        type: String,
+    cloudinary_id: {
+        String,
     },
     likes: [{
         type: mongoose.Schema.Types.ObjectId,
@@ -29,12 +30,6 @@ const postSchema = new mongoose.Schema({
     }
     
 }, { timestamps: true});
-postSchema.pre('save', function (next) {
-    if ((!this.video && !this.image) || (this.video && this.image)) {
-        return next(new Error('Either video or image is required but not both'))
-    }
-    next();
-})
 
 const postModel = mongoose.model('Post', postSchema);
 
