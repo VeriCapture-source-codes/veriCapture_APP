@@ -41,14 +41,12 @@ app.all('*', (req, res, next) => {
     const error = new ApiError(404, `Can't find ${req.originalUrl} on the server`);
     return next(error);
 })
-app.use(globalError)
+app.use(globalError);
 
-connectDB()
-.then(() => {
+await connectDB();
+
+
     app.listen(process.env.PORT, () => {
         console.log(`Server is listening on http://localhost:${process.env.PORT}`);
     });
-}).catch(error => {
-    console.log('Error connecting to Database', error);
-});
 
