@@ -17,9 +17,9 @@ export const createPost = asyncHandler(async (req, res, next) => {
            const error = new ApiError(404, 'User not found');
            return next(error);
     }
-     console.log("Received file:", req.file);
+     // console.log("Received file:", req.file);
 
-const { media, caption, location} = req.body;
+const { caption, location} = req.body;
 
 if (!caption) {
     return next(new ApiError(400, "Caption is required."));

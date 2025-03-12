@@ -30,6 +30,8 @@
     "passport-twitter": "^1.0.4",
     "util": "^0.12.5",
     "uuid": "^11.1.0",
-    "validator": "^13.12.0"
+    "validator": "^13.12.0",
+    "winston": "^3.17.0",
+    "winston-mongodb": "^6.0.0"
   }
 }
