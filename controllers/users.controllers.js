@@ -5,8 +5,6 @@ import { ApiError, asyncHandler } from "../utils/error.js";
 import transporter from "../utils/nodemailer.js";
 import { loginSchema, schema } from "../utils/validation.js";
 import jwt from "jsonwebtoken";
-import dotenv from "dotenv";
-dotenv.config();
 
 export const Register = asyncHandler(async (req, res, next) => {
   const { name, email, userName, password } = req.body;
@@ -22,26 +20,43 @@ export const Register = asyncHandler(async (req, res, next) => {
     return next(new ApiError(400, "User Already exist. Please login"));
   }
 
-  if (!req.file) {
-    return res
-      .status(400)
-      .json({ status: "fail", message: "Image file is required" });
+  // if (!req.file) {
+  //   return res
+  //     .status(400)
+  //     .json({ status: "fail", message: "Image file is required" });
+  // }
+
+  let uploadResult = { secure_url: "", public_id: "" }; // Default values
+
+  if (req.file) {
+    uploadResult = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        { resource_type: "auto" },
+        (error, result) => {
+          if (error) {
+            return reject(error);
+          }
+          resolve(result);
+        }
+      );
+      stream.end(req.file.buffer);
+    });
   }
 
-  const result = await new Promise((resolve, reject) => {
-    const stream = cloudinary.uploader.upload_stream(
-      { resource_type: "auto" },
-      (error, result) => {
-        if (error) {
-          return reject(error);
-        }
-        resolve(result);
-      }
-    );
-    stream.end(req.file.buffer);
-  });
+  // const result = await new Promise((resolve, reject) => {
+  //   const stream = cloudinary.uploader.upload_stream(
+  //     { resource_type: "auto" },
+  //     (error, result) => {
+  //       if (error) {
+  //         return reject(error);
+  //       }
+  //       resolve(result);
+  //     }
+  //   );
+  //   stream.end(req.file.buffer);
+  // });
 
-  const uploadResult = await result;
+  // const uploadResult = await result;
   const user = await userModel.create({
     name,
     userName,
