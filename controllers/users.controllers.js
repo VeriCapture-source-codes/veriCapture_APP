@@ -7,7 +7,7 @@ import { loginSchema, schema } from "../utils/validation.js";
 import jwt from "jsonwebtoken";
 
 export const Register = asyncHandler(async (req, res, next) => {
-  const { name, email, userName, password } = req.body;
+  const { firstName, lastName, email, userName, password } = req.body;
   const { error } = schema.validate(req.body);
   if (error) {
     return next(new ApiError(400, error.details[0].message));
@@ -58,7 +58,8 @@ export const Register = asyncHandler(async (req, res, next) => {
 
   // const uploadResult = await result;
   const user = await userModel.create({
-    name,
+    firstName,
+    lastName,
     userName,
     email,
     password,
