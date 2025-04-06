@@ -104,6 +104,13 @@ export const Register = asyncHandler(async (req, res, next) => {
   };
   await transporter.sendMail(mailOptions);
 
+  res.cookie("token", token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    maxAge: 3 * 24 * 60 * 60 * 1000,
+  });
+
   res.status(201).json(new ApiResponse(201, "Registration successful"));
 });
 
