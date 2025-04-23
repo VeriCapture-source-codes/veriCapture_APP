@@ -14,7 +14,7 @@ import passport from "../auth/passport.js";
 import userModel from "../models/userModel.js";
 import transporter from "../utils/nodemailer.js";
 import userAuth from "../auth/authMiddleware.js";
-
+import otpAuth from "../auth/otpAuth.js";
 const userRouter = Router();
 
 userRouter.get(
@@ -146,6 +146,7 @@ userRouter.post("/change-password", userAuth, async (req, res) => {
   }
 });
 
+// send forgot password OTP
 userRouter.post("/password-reset-otp", async (req, res) => {
   const { email } = req.body;
   try {
@@ -176,6 +177,17 @@ userRouter.post("/password-reset-otp", async (req, res) => {
 
     await transporter.sendMail(mailOptions);
 
+    const token = jwt.sign({ email: user.email }, process.env.JWT_SECRET, {
+      expiresIn: "15m",
+    });
+
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 15 * 60 * 1000,
+    });
+
     res.status(201).json({
       success: true,
       message: "Password reset OTP sent successfully",
@@ -185,13 +197,15 @@ userRouter.post("/password-reset-otp", async (req, res) => {
   }
 });
 
-userRouter.post("/reset-password", async (req, res) => {
-  const { email, OTP, newPassword } = req.body;
+// Verifi otp
+userRouter.post("/verify-otp", otpAuth, async (req, res) => {
+  const email = req.user.email;
+  const { OTP } = req.body;
   try {
-    if (!email || !newPassword || !OTP) {
+    if (!email || !OTP) {
       return res.status(400).json({
         success: false,
-        message: "E-mail, OTP and newPassword are required",
+        message: "E-mailand OTP are required",
       });
     }
 
@@ -214,9 +228,55 @@ userRouter.post("/reset-password", async (req, res) => {
         message: "OTP expired. Please request again",
       });
     }
-    user.password = newPassword;
+
     user.resetPasswordOTP = "";
     user.resetPasswordOTPExpireAt = Date.now();
+    await user.save();
+
+    res.status(201).json({
+      success: true,
+      message: "OTP verified",
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error });
+  }
+});
+
+userRouter.post("/reset-password", otpAuth, async (req, res) => {
+  const email = req.user.email;
+  const { newPassword } = req.body;
+  try {
+    if (!email || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "E-mail and newPassword are required",
+      });
+    }
+
+    const user = await userModel.findOne({ email });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+    // if (user.resetPasswordOTP === "" || user.resetPasswordOTP !== OTP) {
+    //   return res.status(401).json({
+    //     success: false,
+    //     message: "Invalid OTP. Please try again",
+    //   });
+    // }
+    // if (user.resetPasswordOTPExpireAt < Date.now()) {
+    //   return res.status(410).json({
+    //     success: false,
+    //     message: "OTP expired. Please request again",
+    //   });
+    // }
+    user.password = newPassword;
+
+    // user.resetPasswordOTP = "";
+    // user.resetPasswordOTPExpireAt = Date.now();
+
     await user.save();
 
     res.status(201).json({
@@ -228,8 +288,8 @@ userRouter.post("/reset-password", async (req, res) => {
   }
 });
 
-userRouter.post("/register", upload.single("thumbnail"), Register);
-userRouter.post("/login", Login);
+userRouter.post("/create-form", upload.single("thumbnail"), Register);
+userRouter.post("/sign-in-user", Login);
 userRouter.post("/logout", Logout);
 userRouter.put(
   "/update-user",

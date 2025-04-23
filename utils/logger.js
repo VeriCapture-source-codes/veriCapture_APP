@@ -17,7 +17,7 @@ const logger = winston.createLogger({
     }), // Log errors to MongoDB
   ],
   exceptionHandlers: [
-    new winston.exceptions.Console(), // Log exceptions to console
+    // new winston.exceptions.Console(), // Log exceptions to console
     new winston.transports.File({ filename: "exceptions.log" }), // Log exceptions to file
     new winston.transports.MongoDB({
       db: process.env.MONGO_URI,

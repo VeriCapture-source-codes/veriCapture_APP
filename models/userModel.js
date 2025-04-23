@@ -61,7 +61,9 @@ const userSchema = new mongoose.Schema(
     facebookId: {
       type: String,
     },
-
+    location: {
+      type: String,
+    },
     twitterId: {
       type: String,
     },

@@ -104,6 +104,10 @@ export const Register = asyncHandler(async (req, res, next) => {
   };
   await transporter.sendMail(mailOptions);
 
+  const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, {
+    expiresIn: "3d",
+  });
+
   res.cookie("token", token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
