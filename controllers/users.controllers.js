@@ -8,10 +8,18 @@ import jwt from "jsonwebtoken";
 
 export const Register = asyncHandler(async (req, res, next) => {
   const { firstName, lastName, email, userName, password } = req.body;
-  const { error } = schema.validate(req.body);
-  if (error) {
-    return next(new ApiError(400, error.details[0].message));
+
+  if (!firstName || !lastName || !email || !password) {
+    const error = new ApiError(
+      400,
+      "First Name, Last Name, E-mail and Password are required"
+    );
+    return next(error);
   }
+  // const { error } = schema.validate(req.body);
+  // if (error) {
+  //   return next(new ApiError(400, error.details[0].message));
+  // }
 
   const existingUser = await userModel.findOne({ email });
   if (existingUser) {
@@ -120,10 +128,15 @@ export const Register = asyncHandler(async (req, res, next) => {
 
 export const Login = asyncHandler(async (req, res, next) => {
   const { email, password } = req.body;
-  const { error } = loginSchema.validate(req.body);
-  if (error) {
-    return res.status(400).json(new ApiError(400, error.details[0].message));
+
+  if (!email || !password) {
+    const error = new ApiError(400, "E-mail and Password are required");
+    return next(error);
   }
+  // const { error } = loginSchema.validate(req.body);
+  // if (error) {
+  //   return res.status(400).json(new ApiError(400, error.details[0].message));
+  // }
 
   const user = await userModel.findOne({ email });
   if (!user) {
@@ -139,7 +152,7 @@ export const Login = asyncHandler(async (req, res, next) => {
 
   const loggedInUser = await userModel
     .findById(user._id)
-    .select("name thumbnail email");
+    .select("firstName lastName username thumbnail email");
 
   const token = jwt.sign({ id: loggedInUser._id }, process.env.JWT_SECRET, {
     expiresIn: "3d",
@@ -290,7 +303,7 @@ export const fetchUsersByName = asyncHandler(async (req, res, next) => {
     .find({ name: { $regex: name, $options: "i" } })
     .skip(skip)
     .limit(limit)
-    .select("name thumbnail");
+    .select("firstName thumbnail");
 
   if (foundUsers.length === 0) {
     const error = new ApiError(404, "No more page available");
@@ -338,6 +351,8 @@ export const fetchOneUserById = asyncHandler(async (req, res, next) => {
     success: true,
     data: {
       id: fetchedUser._id,
+      firstName: fetchedUser.firstName,
+      lastName: fetchedUser.lastName,
       email: fetchedUser.email,
       thumbnail: fetchedUser.thumbnail,
     },
